@@ -31,5 +31,5 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/db/migrations ./dist/db/migrations
 COPY package.json ./
 
-EXPOSE 3000
+EXPOSE 4499
 CMD ["node", "dist/index.js"]

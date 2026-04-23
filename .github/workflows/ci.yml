@@ -19,7 +19,7 @@ jobs:
           POSTGRES_PASSWORD: operator
           POSTGRES_DB: operator_test
         ports:
-          - 5433:5432
+          - 54500:5432
         options: >-
           --health-cmd "pg_isready -U operator -d operator_test"
           --health-interval 5s
@@ -28,7 +28,7 @@ jobs:
 
     env:
       NODE_ENV: test
-      DATABASE_URL: postgres://operator:operator@localhost:5433/operator_test
+      DATABASE_URL: postgres://operator:operator@localhost:54500/operator_test
       JWT_SECRET: ci-jwt-secret-that-is-at-least-thirty-two-characters-long
       IDBEYOND_API_URL: https://api.idbeyond.test
       IDBEYOND_SECRET: pk_live_ci_secret

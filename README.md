@@ -11,6 +11,18 @@ This repo is the server-side companion to the [`IDBeyondKYC` iOS SDK](https://gi
 - **Stack** — Hono · TypeScript · Drizzle · Postgres · Vitest
 - **Package manager** — pnpm
 - **License** — MIT
+- **iOS integration guide** — [`docs/INTEGRATION.md`](./docs/INTEGRATION.md)
+- **API reference** — [`docs/API.md`](./docs/API.md)
+
+## Ports (uncommon on purpose)
+
+| Service | Host port |
+|---|---|
+| Operator backend | `4499` |
+| Postgres (dev) | `54499` |
+| Postgres (test) | `54500` |
+
+Chosen to avoid clashes with other local services; override via `PORT` / `DATABASE_URL` if you need something else.
 
 ---
 
@@ -66,21 +78,21 @@ pnpm db:migrate
 
 # 5. Run
 pnpm dev
-# → http://localhost:3000/health
+# → http://localhost:4499/health
 ```
 
 ### Smoke-test the full flow
 
 ```bash
 # Sign up
-curl -s -X POST http://localhost:3000/auth/signup \
+curl -s -X POST http://localhost:4499/auth/signup \
   -H 'Content-Type: application/json' \
   -d '{"email":"alice@example.com","password":"correct-horse-staple"}' | tee /tmp/session.json
 
 ACCESS=$(jq -r .accessToken /tmp/session.json)
 
 # Mint a KYC session
-curl -s -X POST http://localhost:3000/kyc/sessions \
+curl -s -X POST http://localhost:4499/kyc/sessions \
   -H "Authorization: Bearer $ACCESS"
 # → { "sessionId": "...", "hostedUrl": "https://verify.uniicy.com/...", "expiresAt": "..." }
 
@@ -93,7 +105,7 @@ curl -s -X POST http://localhost:3000/kyc/sessions \
 
 | Variable | Required | Description |
 |---|---|---|
-| `PORT` | — | HTTP port (default `3000`). |
+| `PORT` | — | HTTP port (default `4499`). |
 | `NODE_ENV` | — | `development`, `test`, `production`. |
 | `DATABASE_URL` | ✓ | Postgres connection string. |
 | `JWT_SECRET` | ✓ | ≥32 chars. `openssl rand -base64 48`. |
@@ -129,7 +141,7 @@ curl -s -X POST http://localhost:3000/kyc/sessions \
 **Signup**
 
 ```bash
-curl -X POST http://localhost:3000/auth/signup \
+curl -X POST http://localhost:4499/auth/signup \
   -H 'Content-Type: application/json' \
   -d '{"email":"alice@example.com","password":"correct-horse-staple"}'
 ```
@@ -137,7 +149,7 @@ curl -X POST http://localhost:3000/auth/signup \
 **Login**
 
 ```bash
-curl -X POST http://localhost:3000/auth/login \
+curl -X POST http://localhost:4499/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"alice@example.com","password":"correct-horse-staple"}'
 ```
@@ -145,7 +157,7 @@ curl -X POST http://localhost:3000/auth/login \
 **Refresh**
 
 ```bash
-curl -X POST http://localhost:3000/auth/refresh \
+curl -X POST http://localhost:4499/auth/refresh \
   -H 'Content-Type: application/json' \
   -d '{"refreshToken":"<from-previous-response>"}'
 ```
@@ -153,12 +165,12 @@ curl -X POST http://localhost:3000/auth/refresh \
 **Magic-link request / verify**
 
 ```bash
-curl -X POST http://localhost:3000/auth/magic-link/request \
+curl -X POST http://localhost:4499/auth/magic-link/request \
   -H 'Content-Type: application/json' \
   -d '{"email":"alice@example.com"}'
 # In dev the verify URL is logged to the server console.
 
-curl -X POST http://localhost:3000/auth/magic-link/verify \
+curl -X POST http://localhost:4499/auth/magic-link/verify \
   -H 'Content-Type: application/json' \
   -d '{"token":"<from-email>"}'
 ```
@@ -166,7 +178,7 @@ curl -X POST http://localhost:3000/auth/magic-link/verify \
 **Apple Sign In**
 
 ```bash
-curl -X POST http://localhost:3000/auth/apple \
+curl -X POST http://localhost:4499/auth/apple \
   -H 'Content-Type: application/json' \
   -d '{"identityToken":"<ASAuthorizationAppleIDCredential.identityToken>"}'
 ```
@@ -174,14 +186,14 @@ curl -X POST http://localhost:3000/auth/apple \
 **Current user**
 
 ```bash
-curl http://localhost:3000/me \
+curl http://localhost:4499/me \
   -H "Authorization: Bearer $ACCESS"
 ```
 
 **Mint a KYC session**
 
 ```bash
-curl -X POST http://localhost:3000/kyc/sessions \
+curl -X POST http://localhost:4499/kyc/sessions \
   -H "Authorization: Bearer $ACCESS"
 ```
 
@@ -190,7 +202,7 @@ curl -X POST http://localhost:3000/kyc/sessions \
 ```bash
 BODY='{"event":"verification.completed","verificationSessionId":"...","externalUserId":"<user.id>","decision":"approved","reviewStatus":"approved","rationale":""}'
 SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$IDBEYOND_WEBHOOK_SECRET" -hex | cut -d' ' -f2)
-curl -X POST http://localhost:3000/webhooks/kyc \
+curl -X POST http://localhost:4499/webhooks/kyc \
   -H 'Content-Type: application/json' \
   -H "X-Verification-Signature: $SIG" \
   -d "$BODY"
@@ -220,7 +232,7 @@ docker compose --profile test up -d postgres-test
 pnpm test
 ```
 
-- Tests use `app.request(...)` so there's no network listener — everything runs in-process against a real Postgres on port `5433`.
+- Tests use `app.request(...)` so there's no network listener — everything runs in-process against a real Postgres on port `54500`.
 - Each test file gets a freshly dropped / re-migrated `public` schema.
 - `fetch` is stubbed per-test for the id beyond proxy — no real API calls.
 
@@ -230,7 +242,7 @@ pnpm test
 
 ```bash
 docker build -t id-beyond-operator-starter .
-docker run --rm -p 3000:3000 --env-file .env id-beyond-operator-starter
+docker run --rm -p 4499:4499 --env-file .env id-beyond-operator-starter
 ```
 
 The image runs migrations via `pnpm db:migrate` as a separate step; add an init-container or `RUN pnpm db:migrate` hook in your deployment depending on how you like to sequence schema changes.

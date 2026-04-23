@@ -4,8 +4,8 @@
  * a developer's local shell.
  */
 process.env["NODE_ENV"] = "test";
-process.env["PORT"] ??= "3001";
-process.env["DATABASE_URL"] ??= "postgres://operator:operator@localhost:5433/operator_test";
+process.env["PORT"] ??= "4500";
+process.env["DATABASE_URL"] ??= "postgres://operator:operator@localhost:54500/operator_test";
 process.env["JWT_SECRET"] ??=
   "test-jwt-secret-that-is-at-least-thirty-two-characters-long";
 process.env["IDBEYOND_API_URL"] ??= "https://api.idbeyond.test";
