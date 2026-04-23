@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Typecheck, test & build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: operator
+          POSTGRES_PASSWORD: operator
+          POSTGRES_DB: operator_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U operator -d operator_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://operator:operator@localhost:5433/operator_test
+      JWT_SECRET: ci-jwt-secret-that-is-at-least-thirty-two-characters-long
+      IDBEYOND_API_URL: https://api.idbeyond.test
+      IDBEYOND_SECRET: pk_live_ci_secret
+      IDBEYOND_WEBHOOK_SECRET: ci-webhook-shared-secret-12345678
+      KYC_RETURN_URL: https://app.example.test/kyc/return
+      AUTH_APPLE_CLIENT_ID: com.example.app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
